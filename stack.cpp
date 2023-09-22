@@ -1,5 +1,8 @@
 #include "stack.h"
 
+#define STACK_DUMP(stk, error) \
+        stack_dump (stk, error, __FILE__, __func__, __LINE__);
+
 Errors stack_ctor (Stack* stk)
 {
     if (!stk)
@@ -12,7 +15,7 @@ Errors stack_ctor (Stack* stk)
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
-        stack_dump (stk, error);
+        STACK_DUMP(stk, error);
         return error;
     }
 
@@ -37,7 +40,7 @@ Errors stack_push (Stack* stk, Elemt value)
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
-        stack_dump (stk, error);
+        STACK_DUMP(stk, error);
         return error;
     }
 
@@ -46,7 +49,7 @@ Errors stack_push (Stack* stk, Elemt value)
         error = stack_realloc (stk, EXPAND);
         if (error != CORRECT)
         {
-            stack_dump (stk, error);
+            STACK_DUMP(stk, error);
             return error;
         }
     }
@@ -61,13 +64,13 @@ Errors stack_pop (Stack* stk, Elemt* value)
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
-        stack_dump (stk, error);
+        STACK_DUMP(stk, error);
         return error;
     }
 
     if ((stk->size_st) == 0)
     {
-        printf ("Stack is empty\n");
+        printf ("Stack is empty. Unable to perform pop\n");
         *value = INT_MAX;
         return EMPTY_STACK;
     }
@@ -80,7 +83,7 @@ Errors stack_pop (Stack* stk, Elemt* value)
         error = stack_realloc (stk, REDUCE);
         if (error != CORRECT)
         {
-            stack_dump (stk, error);
+            STACK_DUMP(stk, error);
             return error;
         }
     }
@@ -133,8 +136,9 @@ void print_error (Errors error)
     }
 }
 
-void stack_dump (Stack* stk, Errors error)
+void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line)
 {
+    printf (RED_COL "Error is in %s in function %s in %d line\n", file, func, line);
     if (!stk)
     {
         printf ("Null pointer of stack\n");
@@ -149,7 +153,7 @@ void stack_dump (Stack* stk, Errors error)
 
     if (!(stk->data))
     {
-        printf ("Null pointer of data in stack\n");
+        printf ("Null pointer of data in stack\n" OFF_COL);
         return;
     }
     for (int i = 0; i < stk->capacity; i++)
@@ -160,6 +164,7 @@ void stack_dump (Stack* stk, Errors error)
             printf (" ");
         printf ("[%d] = %d\n", i, (stk->data)[i]);
     }
+    printf (OFF_COL);
 }
 
 Errors stack_realloc (Stack* stk, Actions action)
@@ -167,7 +172,7 @@ Errors stack_realloc (Stack* stk, Actions action)
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
-        stack_dump (stk, error);
+        STACK_DUMP(stk, error);
         return error;
     }
 
@@ -204,7 +209,7 @@ Errors print_stack (Stack* stk)
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
-        stack_dump (stk, error);
+        STACK_DUMP(stk, error);
         return error;
     }
 

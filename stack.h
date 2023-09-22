@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <limits.h>
 
+#include "colors.h"
+
 typedef int Elemt;
 
 enum Errors
@@ -41,7 +43,7 @@ Errors stack_push (Stack* stk, Elemt value);
 Errors stack_pop (Stack* stk, Elemt* value);
 Errors stack_verify (const Stack* stk);
 void print_error (Errors error);
-void stack_dump (Stack* stk, Errors error);
+void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line);
 Errors stack_realloc (Stack* stk, Actions action);
 Errors print_stack (Stack* stk);
 
