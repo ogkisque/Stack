@@ -3,16 +3,48 @@
 #define STACK_DUMP(stk, error) \
         stack_dump (stk, error, __FILE__, __func__, __LINE__);
 
+struct Stack
+{
+#ifdef CANARY
+    Canaryt l_canary;
+#endif
+    int size_st;
+    int capacity;
+    Elemt* data;
+
+    const char* name;
+    const char* file;
+    const char* func;
+    int line;
+#ifdef HASH
+    Hasht hash_st;
+#endif
+#ifdef CANARY
+    Canaryt r_canary;
+#endif
+};
+
+Errors make_stack (Stack* stk)
+{
+    stk = (Stack*) calloc (1, sizeof (Stack));
+
+    if (stk == NULL)
+        return MEM_ALLOC_ERR;
+    return CORRECT;
+}
+
 Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* func, int line)
 {
     if (!(stk && name && file && func))
         return NULL_POINTER;
 
+    printf ("BBBBB\n");
     stk->capacity = CAPACITY_START;
     stk->size_st = 0;
 
 #ifndef CANARY
     stk->data = (Elemt*) calloc (CAPACITY_START, sizeof (Elemt));
+    if (stk->data == NULL) printf ("QWE\n");
 #else
     stk->l_canary = REF_VAL_CAN;
     stk->r_canary = REF_VAL_CAN;
@@ -20,7 +52,7 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
     ((Canaryt*) (stk->data))[0] = REF_VAL_CAN;
     ((Canaryt*) (get_elem_point (stk, CAPACITY_START)))[0] = REF_VAL_CAN;
 #endif
-
+    printf ("BBBBB\n");
     stk->name = name;
     stk->file = file;
     stk->func = func;
@@ -28,7 +60,7 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
 #ifdef HASH
     stk->hash_st = get_hash (stk);
 #endif
-
+    printf ("BBBBB\n");
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
@@ -47,6 +79,8 @@ Errors stack_dtor (Stack* stk)
 #ifdef CANARY
     stk->l_canary = 0;
     stk->r_canary = 0;
+    ((Canaryt*)stk->data)[0] = 0;
+    ((Canaryt*) get_elem_point (stk, stk->capacity))[0] = 0;
 #endif
 
     stk->size_st = -1;
@@ -55,6 +89,8 @@ Errors stack_dtor (Stack* stk)
     stk->func = NULL;
     stk->file = NULL;
     stk->line = -1;
+    for (int i = 0; i < (stk->size_st); i++)
+            *get_elem_point (stk, i) = INT_MAX;
     free (stk->data);
     stk->data = NULL;
 
@@ -79,11 +115,8 @@ Errors stack_push (Stack* stk, Elemt value)
             return error;
         }
     }
-#ifdef CANARY
+
     (get_elem_point (stk, stk->size_st))[0] = value;
-#else
-    (stk->data)[stk->size_st] = value;
-#endif
     (stk->size_st)++;
 #ifdef HASH
     stk->hash_st = get_hash (stk);
@@ -106,13 +139,9 @@ Errors stack_pop (Stack* stk, Elemt* value)
         *value = INT_MAX;
         return EMPTY_STACK;
     }
-#ifdef CANARY
+
     *value = (get_elem_point (stk, stk->size_st - 1))[0];
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
-#else
-    *value = (stk->data)[stk->size_st - 1];
-    (stk->data)[stk->size_st - 1] = INT_MAX;
-#endif
     (stk->size_st)--;
 #ifdef HASH
     stk->hash_st = get_hash (stk);
@@ -138,17 +167,13 @@ Errors stack_verify (Stack* stk)
     if ((stk->size_st) < 0)                                                   return NEGATIVE_SIZE;
     if ((stk->capacity) < 0)                                                  return NEGATIVE_CAPACITY;
     if ((stk->capacity) < (stk->size_st))                                     return SIZE_MORE_CAPACITY;
-
+    for (int i = 0; i < (stk->size_st); i++)
+            if ((*get_elem_point (stk, i)) == INT_MAX)                        return RUBBISH;
 #ifdef CANARY
     if ((stk->l_canary) != REF_VAL_CAN)                                       return L_CANARY_ERR;
     if ((stk->r_canary) != REF_VAL_CAN)                                       return R_CANARY_ERR;
     if (((Canaryt*) (stk->data))[0] != REF_VAL_CAN)                           return L_CANARY_DATA_ERR;
     if (((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] != REF_VAL_CAN) return R_CANARY_DATA_ERR;
-    for (int i = 0; i < (stk->size_st); i++)
-        if ((get_elem_point (stk, i))[0] == INT_MAX)                          return RUBBISH;
-#else
-    for (int i = 0; i < (stk->size_st); i++)
-        if ((stk->data)[i] == INT_MAX)                                        return RUBBISH;
 #endif
 
 #ifdef HASH
@@ -249,8 +274,12 @@ void stack_dump (const Stack* stk, Errors error, const char* file, const char* f
         printf ("Null pointer of data in stack\n" OFF_COL);
         return;
     }
+
 #ifdef CANARY
     printf ("Left canary in data is 0x%llX\n", ((Canaryt*) stk->data)[0]);
+    printf ("Right canary in data is 0x%llX\n", ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0]);
+#endif
+
     for (int i = 0; i < stk->capacity; i++)
     {
         if (i < stk->size_st)
@@ -259,17 +288,6 @@ void stack_dump (const Stack* stk, Errors error, const char* file, const char* f
             printf (" ");
         printf ("[%d] = %d\n", i, (get_elem_point (stk, i))[0]);
     }
-    printf ("Right canary in data is 0x%llX\n", ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0]);
-#else
-    for (int i = 0; i < stk->capacity; i++)
-    {
-        if (i < stk->size_st)
-            printf ("*");
-        else
-            printf (" ");
-        printf ("[%d] = %d\n", i, (stk->data)[i]);
-    }
-#endif
     printf (OFF_COL);
 }
 
@@ -355,31 +373,26 @@ Errors print_stack (Stack* stk)
     }
 
     printf ("Size - %d, capacity - %d\n", stk->size_st, stk->capacity);
-#ifndef CANARY
-    if (stk->size_st > 0)
-    {
-        for (int i = 0; i < stk->size_st; i++)
-            printf ("%d ", (stk->data)[i]);
-        printf ("\n");
-    }
-#else
+
     if (stk->size_st > 0)
     {
         for (int i = 0; i < stk->size_st; i++)
             printf ("%d ", (get_elem_point (stk, i))[0]);
         printf ("\n");
     }
-#endif
 
     return CORRECT;
 }
 
-#ifdef CANARY
 Elemt* get_elem_point (const Stack* stk, int num)
 {
+#ifdef CANARY
     return (Elemt*) ((char*) (stk->data) + sizeof (Canaryt) + num * sizeof (Elemt));
-}
+#else
+    return &(stk->data[num]);
 #endif
+}
+
 
 #ifdef HASH
 Hasht get_hash (const Stack* stk)
@@ -397,20 +410,6 @@ Hasht get_hash (const Stack* stk)
     for (char* i = (char*) ((char*) stk->data + sizeof (Canaryt)); i < ((char*) get_elem_point (stk, stk->size_st)); i++)
         hash_st = hash_st * 33 + *i;
 #endif
-
-/*
-#ifdef CANARY
-    for (char* i = (char*) stk + sizeof (Canaryt); i < ((char*) stk + sizeof (*stk) - sizeof (Canaryt)); i++)
-        hash_st = hash_st * 33 + *i;
-    for (char* i = (char*) ((char*) stk->data + sizeof (Canaryt)); i < ((char*) get_elem_point (stk, stk->size_st)); i++)
-        hash_st = hash_st * 33 + *i;
-#else
-    for (char* i = (char*) stk; i < ((char*) stk + sizeof (*stk)); i++)
-        hash_st = hash_st * 33 + *i;
-    for (char* i = (char*) stk->data; i < (char*) stk->data + sizeof (Elemt) * stk->size_st; i++)
-        hash_st = hash_st * 33 + *i;
-#endif
-*/
     return hash_st;
 }
 #endif

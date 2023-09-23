@@ -1,10 +1,11 @@
 #include "stack.h"
 
 #define STACK_CTOR(stk) \
-        stack_ctor ((stk), #stk, __FILE__, __func__, __LINE__);
+        stack_ctor ((stk), #stk, __FILE__, __func__, __LINE__)
 
 int main ()
 {
+    /*
     Stack stk = {};
     Elemt num = 0;
     STACK_CTOR(&stk);
@@ -87,6 +88,14 @@ int main ()
     stk3.size_st = 3;
     ((Elemt*)((char*) stk3.data + sizeof (Canaryt)))[0] = 6;
     stack_push (&stk3, 4);
+    */
+    Stack* stk;
+    make_stack (stk);
+    printf ("AAAA\n");
+    printf ("%d\n", STACK_CTOR(stk));
+    printf ("AAAA\n");
+    stack_push (stk, 10);
+    print_stack (stk);
     return 0;
 }
 

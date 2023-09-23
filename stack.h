@@ -45,26 +45,7 @@ enum Actions
     REDUCE = 2
 };
 
-struct Stack
-{
-#ifdef CANARY
-    Canaryt l_canary;
-#endif
-    int size_st;
-    int capacity;
-    Elemt* data;
-
-    const char* name;
-    const char* file;
-    const char* func;
-    int line;
-#ifdef HASH
-    Hasht hash_st;
-#endif
-#ifdef CANARY
-    Canaryt r_canary;
-#endif
-};
+struct Stack;
 
 const int CAPACITY_START = 1;
 const int COEFF_ALLOC = 2;
@@ -72,6 +53,7 @@ const int COEFF_ALLOC = 2;
 const Canaryt REF_VAL_CAN = 0xFFFFFFFFFFFFFFFF;
 #endif
 
+Errors make_stack (Stack* stk);
 Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* func, int line);
 Errors stack_dtor (Stack* stk);
 Errors stack_push (Stack* stk, Elemt value);
@@ -81,9 +63,8 @@ void print_error (Errors error);
 void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line);
 Errors stack_realloc (Stack* stk, Actions action);
 Errors print_stack (Stack* stk);
-#ifdef CANARY
 Elemt* get_elem_point (const Stack* stk, int num);
-#endif
+
 #ifdef HASH
 Hasht get_hash (const Stack* stk);
 #endif
