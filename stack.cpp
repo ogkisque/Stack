@@ -25,6 +25,9 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
     stk->file = file;
     stk->func = func;
     stk->line = line;
+#ifdef HASH
+    stk->hash_st = get_hash (stk);
+#endif
 
     Errors error = stack_verify (stk);
     if (error != CORRECT)
@@ -76,9 +79,15 @@ Errors stack_push (Stack* stk, Elemt value)
             return error;
         }
     }
-
+#ifdef CANARY
     (get_elem_point (stk, stk->size_st))[0] = value;
+#else
+    (stk->data)[stk->size_st] = value;
+#endif
     (stk->size_st)++;
+#ifdef HASH
+    stk->hash_st = get_hash (stk);
+#endif
     return CORRECT;
 }
 
@@ -97,10 +106,17 @@ Errors stack_pop (Stack* stk, Elemt* value)
         *value = INT_MAX;
         return EMPTY_STACK;
     }
-
+#ifdef CANARY
     *value = (get_elem_point (stk, stk->size_st - 1))[0];
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
+#else
+    *value = (stk->data)[stk->size_st - 1];
+    (stk->data)[stk->size_st - 1] = INT_MAX;
+#endif
     (stk->size_st)--;
+#ifdef HASH
+    stk->hash_st = get_hash (stk);
+#endif
     if ((stk->size_st) < ((stk->capacity) / COEFF_ALLOC))
     {
         error = stack_realloc (stk, REDUCE);
@@ -110,11 +126,13 @@ Errors stack_pop (Stack* stk, Elemt* value)
             return error;
         }
     }
-
+#ifdef HASH
+    stk->hash_st = get_hash (stk);
+#endif
     return CORRECT;
 }
 
-Errors stack_verify (const Stack* stk)
+Errors stack_verify (Stack* stk)
 {
     if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))   return NULL_POINTER;
     if ((stk->size_st) < 0)                                                   return NEGATIVE_SIZE;
@@ -131,6 +149,13 @@ Errors stack_verify (const Stack* stk)
 #else
     for (int i = 0; i < (stk->size_st); i++)
         if ((stk->data)[i] == INT_MAX)                                        return RUBBISH;
+#endif
+
+#ifdef HASH
+    Hasht prev_hash = stk->hash_st;
+    Hasht new_hash = get_hash (stk);
+    stk->hash_st = new_hash;
+    if (prev_hash != new_hash)                                                return HASH_ERR;
 #endif
 
     return CORRECT;
@@ -181,6 +206,11 @@ void print_error (Errors error)
             break;
 #endif
 
+#ifdef HASH
+        case HASH_ERR:
+            printf ("Hash is incorrect\n");
+            break;
+#endif
         default:
             break;
     }
@@ -203,6 +233,10 @@ void stack_dump (const Stack* stk, Errors error, const char* file, const char* f
 #ifdef CANARY
     printf ("Left canary if 0x%llX\n", stk->l_canary);
     printf ("Right canary if 0x%llX\n", stk->r_canary);
+#endif
+
+#ifdef HASH
+   printf ("Hash is %ull\n", stk->hash_st);
 #endif
 
     printf ("Size     of stack is %d\n"
@@ -304,6 +338,10 @@ Errors stack_realloc (Stack* stk, Actions action)
     }
 #endif
 
+#ifdef HASH
+    stk->hash_st = get_hash (stk);
+#endif
+
     return CORRECT;
 }
 
@@ -340,5 +378,39 @@ Errors print_stack (Stack* stk)
 Elemt* get_elem_point (const Stack* stk, int num)
 {
     return (Elemt*) ((char*) (stk->data) + sizeof (Canaryt) + num * sizeof (Elemt));
+}
+#endif
+
+#ifdef HASH
+Hasht get_hash (const Stack* stk)
+{
+    Hasht hash_st = 5381;
+    for (char* i = (char*) &(stk->size_st); i < ((char*) &(stk->size_st) + sizeof (stk->size_st)); i++)
+        hash_st = hash_st * 33 + *i;
+    for (char* i = (char*) &(stk->capacity); i < ((char*) &(stk->capacity) + sizeof (stk->capacity)); i++)
+        hash_st = hash_st * 33 + *i;
+#ifndef CANARY
+    for (int i = 0; i < stk->size_st; i++)
+        for (char* j = (char*) &(stk->data[i]); j < (char*) (&(stk->data[i]) + sizeof (Elemt)); j++)
+            hash_st = hash_st * 33 + *j;
+#else
+    for (char* i = (char*) ((char*) stk->data + sizeof (Canaryt)); i < ((char*) get_elem_point (stk, stk->size_st)); i++)
+        hash_st = hash_st * 33 + *i;
+#endif
+
+/*
+#ifdef CANARY
+    for (char* i = (char*) stk + sizeof (Canaryt); i < ((char*) stk + sizeof (*stk) - sizeof (Canaryt)); i++)
+        hash_st = hash_st * 33 + *i;
+    for (char* i = (char*) ((char*) stk->data + sizeof (Canaryt)); i < ((char*) get_elem_point (stk, stk->size_st)); i++)
+        hash_st = hash_st * 33 + *i;
+#else
+    for (char* i = (char*) stk; i < ((char*) stk + sizeof (*stk)); i++)
+        hash_st = hash_st * 33 + *i;
+    for (char* i = (char*) stk->data; i < (char*) stk->data + sizeof (Elemt) * stk->size_st; i++)
+        hash_st = hash_st * 33 + *i;
+#endif
+*/
+    return hash_st;
 }
 #endif

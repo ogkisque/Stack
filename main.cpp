@@ -82,9 +82,11 @@ int main ()
     stack_push (&stk3, 2);
     stack_push (&stk3, 3);
     print_stack (&stk3);
-    stk3.data[0] = 3;
+    stk3.size_st = 2;
+    print_stack (&stk3);
+    stk3.size_st = 3;
+    ((Elemt*)((char*) stk3.data + sizeof (Canaryt)))[0] = 6;
     stack_push (&stk3, 4);
-    stack_push (&stk3, 5);
     return 0;
 }
 

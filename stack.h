@@ -2,6 +2,7 @@
 #define STACK_HEADER
 
 #define CANARY
+#define HASH
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,6 +13,9 @@
 typedef int Elemt;
 #ifdef CANARY
 typedef unsigned long long Canaryt;
+#endif
+#ifdef HASH
+typedef unsigned long long Hasht;
 #endif
 
 enum Errors
@@ -30,6 +34,9 @@ enum Errors
     L_CANARY_DATA_ERR =  10,
     R_CANARY_DATA_ERR =  11,
 #endif
+#ifdef HASH
+    HASH_ERR =           12
+#endif
 };
 
 enum Actions
@@ -43,7 +50,6 @@ struct Stack
 #ifdef CANARY
     Canaryt l_canary;
 #endif
-
     int size_st;
     int capacity;
     Elemt* data;
@@ -52,7 +58,9 @@ struct Stack
     const char* file;
     const char* func;
     int line;
-
+#ifdef HASH
+    Hasht hash_st;
+#endif
 #ifdef CANARY
     Canaryt r_canary;
 #endif
@@ -68,13 +76,16 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
 Errors stack_dtor (Stack* stk);
 Errors stack_push (Stack* stk, Elemt value);
 Errors stack_pop (Stack* stk, Elemt* value);
-Errors stack_verify (const Stack* stk);
+Errors stack_verify (Stack* stk);
 void print_error (Errors error);
 void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line);
 Errors stack_realloc (Stack* stk, Actions action);
 Errors print_stack (Stack* stk);
 #ifdef CANARY
 Elemt* get_elem_point (const Stack* stk, int num);
+#endif
+#ifdef HASH
+Hasht get_hash (const Stack* stk);
 #endif
 
 #endif //STACK_HEADER
