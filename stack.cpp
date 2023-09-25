@@ -24,11 +24,20 @@ struct Stack
 #endif
 };
 
-Errors make_stack (Stack* stk)
-{
-    stk = (Stack*) calloc (1, sizeof (Stack));
+Errors stack_verify (Stack* stk);
+void print_error (Errors error);
+void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line);
+Errors stack_realloc (Stack* stk, Actions action);
+Elemt* get_elem_point (const Stack* stk, int num);
+#ifdef HASH
+Hasht get_hash (const Stack* stk);
+#endif
 
-    if (stk == NULL)
+Errors make_stack (Stack** stk)
+{
+    *stk = (Stack*) calloc (1, sizeof (Stack));
+
+    if (&stk == NULL)
         return MEM_ALLOC_ERR;
     return CORRECT;
 }
@@ -38,13 +47,11 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
     if (!(stk && name && file && func))
         return NULL_POINTER;
 
-    printf ("BBBBB\n");
     stk->capacity = CAPACITY_START;
     stk->size_st = 0;
 
 #ifndef CANARY
     stk->data = (Elemt*) calloc (CAPACITY_START, sizeof (Elemt));
-    if (stk->data == NULL) printf ("QWE\n");
 #else
     stk->l_canary = REF_VAL_CAN;
     stk->r_canary = REF_VAL_CAN;
@@ -52,7 +59,6 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
     ((Canaryt*) (stk->data))[0] = REF_VAL_CAN;
     ((Canaryt*) (get_elem_point (stk, CAPACITY_START)))[0] = REF_VAL_CAN;
 #endif
-    printf ("BBBBB\n");
     stk->name = name;
     stk->file = file;
     stk->func = func;
@@ -60,7 +66,6 @@ Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* f
 #ifdef HASH
     stk->hash_st = get_hash (stk);
 #endif
-    printf ("BBBBB\n");
     Errors error = stack_verify (stk);
     if (error != CORRECT)
     {
@@ -143,10 +148,8 @@ Errors stack_pop (Stack* stk, Elemt* value)
     *value = (get_elem_point (stk, stk->size_st - 1))[0];
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
     (stk->size_st)--;
-#ifdef HASH
-    stk->hash_st = get_hash (stk);
-#endif
-    if ((stk->size_st) < ((stk->capacity) / COEFF_ALLOC))
+
+    if (((stk->size_st) < ((stk->capacity) / COEFF_ALLOC)) && (stk->capacity > 8))
     {
         error = stack_realloc (stk, REDUCE);
         if (error != CORRECT)
@@ -293,13 +296,6 @@ void stack_dump (const Stack* stk, Errors error, const char* file, const char* f
 
 Errors stack_realloc (Stack* stk, Actions action)
 {
-    Errors error = stack_verify (stk);
-    if (error != CORRECT)
-    {
-        STACK_DUMP(stk, error);
-        return error;
-    }
-
 #ifndef CANARY
     if (action == EXPAND)
     {
@@ -392,7 +388,6 @@ Elemt* get_elem_point (const Stack* stk, int num)
     return &(stk->data[num]);
 #endif
 }
-
 
 #ifdef HASH
 Hasht get_hash (const Stack* stk)

@@ -47,26 +47,17 @@ enum Actions
 
 struct Stack;
 
-const int CAPACITY_START = 1;
+const int CAPACITY_START = 8;
 const int COEFF_ALLOC = 2;
 #ifdef CANARY
 const Canaryt REF_VAL_CAN = 0xFFFFFFFFFFFFFFFF;
 #endif
 
-Errors make_stack (Stack* stk);
+Errors make_stack (Stack** stk);
 Errors stack_ctor (Stack* stk, const char* name, const char* file, const char* func, int line);
 Errors stack_dtor (Stack* stk);
 Errors stack_push (Stack* stk, Elemt value);
 Errors stack_pop (Stack* stk, Elemt* value);
-Errors stack_verify (Stack* stk);
-void print_error (Errors error);
-void stack_dump (const Stack* stk, Errors error, const char* file, const char* func, int line);
-Errors stack_realloc (Stack* stk, Actions action);
 Errors print_stack (Stack* stk);
-Elemt* get_elem_point (const Stack* stk, int num);
-
-#ifdef HASH
-Hasht get_hash (const Stack* stk);
-#endif
 
 #endif //STACK_HEADER
