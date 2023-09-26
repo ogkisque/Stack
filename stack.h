@@ -10,6 +10,9 @@
 
 #include "colors.h"
 
+#define MAKE_STACK(stk) \
+        make_stack ((stk), #stk, __FILE__, __func__, __LINE__)
+
 typedef int Elemt;
 #ifdef CANARY
 typedef unsigned long long Canaryt;
@@ -52,9 +55,8 @@ const int COEFF_ALLOC = 2;
 const Canaryt REF_VAL_CAN = 0xFFFFFFFFFFFFFFFF;
 #endif
 
-int make_stack (Stack** stk);
-int stack_ctor (Stack* stk, const char* name, const char* file, const char* func, int line);
-int stack_dtor (Stack* stk);
+int make_stack (Stack** stk, const char* name, const char* file, const char* func, int line);
+int delete_stack (Stack** stk);
 int stack_push (Stack* stk, Elemt value);
 int stack_pop (Stack* stk, Elemt* value);
 int print_stack (Stack* stk);

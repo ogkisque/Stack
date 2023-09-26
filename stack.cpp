@@ -25,6 +25,8 @@ struct Stack
 };
 
 int stack_verify (Stack* stk);
+int stack_ctor (Stack* stk, const char* name, const char* file, const char* func, int line);
+int stack_dtor (Stack* stk);
 void print_error (int error);
 void stack_dump (const Stack* stk, int error, const char* file, const char* func, int line);
 int stack_realloc (Stack* stk, Actions action);
@@ -33,14 +35,27 @@ Elemt* get_elem_point (const Stack* stk, int num);
 Hasht get_hash (const Stack* stk);
 #endif
 
-int make_stack (Stack** stk)
+int make_stack (Stack** stk, const char* name, const char* file, const char* func, int line)
 {
     int error = 0;
 
     *stk = (Stack*) calloc (1, sizeof (Stack));
 
     if (&stk == NULL)
+    {
         error |= MEM_ALLOC_ERR;
+        return error;
+    }
+
+    error = stack_ctor (*stk, name, file, func, line);
+    return error;
+}
+
+int delete_stack (Stack** stk)
+{
+    int error = stack_dtor (*stk);
+    free (*stk);
+    *stk = NULL;
     return error;
 }
 
@@ -180,7 +195,11 @@ int stack_pop (Stack* stk, Elemt* value)
 int stack_verify (Stack* stk)
 {
     int error = 0;
-    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))   error |= NULL_POINTER;
+    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))
+    {
+        error |= NULL_POINTER;
+        return error;
+    }
     if ((stk->size_st) < 0)                                                   error |= NEGATIVE_SIZE;
     if ((stk->capacity) < 0)                                                  error |= NEGATIVE_CAPACITY;
     if ((stk->capacity) < (stk->size_st))                                     error |= SIZE_MORE_CAPACITY;
@@ -242,14 +261,14 @@ void print_error (int error)
 
 void stack_dump (const Stack* stk, int error, const char* file, const char* func, int line)
 {
-    printf (RED_COL "Error is in file %s, function %s, line %d in stack %s.\n", stk->file, stk->func, stk->line, stk->name);
-    printf ("Called from file %s, function %s, line %d.\n", file, func, line);
     if (!stk)
     {
         printf ("Null pointer of stack\n");
         return;
     }
 
+    printf (RED_COL "Error is in file %s, function %s, line %d in stack %s.\n", stk->file, stk->func, stk->line, stk->name);
+    printf ("Called from file %s, function %s, line %d.\n", file, func, line);
     print_error (error);
     printf (RED_COL);
 
@@ -292,65 +311,34 @@ void stack_dump (const Stack* stk, int error, const char* file, const char* func
 int stack_realloc (Stack* stk, Actions action)
 {
     int error = 0;
-#ifndef CANARY
+    int capacity_start = stk->capacity;
+    Elemt* data_start = stk->data;
+
     if (action == EXPAND)
-    {
-        stk->data = (Elemt*) realloc (stk->data,
-                                     (stk->capacity) * COEFF_ALLOC *
-                                     sizeof (Elemt));
-        if (!(stk->data))
-        {
-            error |= MEM_ALLOC_ERR;
-            return error;
-        }
-
         stk->capacity = (stk->capacity) * COEFF_ALLOC;
-    }
     else
-    {
-        stk->data = (Elemt*) realloc (stk->data,
-                                     (stk->capacity) / COEFF_ALLOC *
-                                     sizeof (Elemt));
-        if (!(stk->data))
-        {
-            error |= MEM_ALLOC_ERR;
-            return error;
-        }
-
         stk->capacity = (stk->capacity) / COEFF_ALLOC;
-    }
+
+    int new_size = 0;
+#ifdef CANARY
+    new_size = 2 * sizeof (Canaryt) + stk->capacity * sizeof (Elemt);
 #else
-    if (action == EXPAND)
-    {
-        ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] = INT_MAX;
-        stk->data = (Elemt*) realloc (stk->data, sizeof (Canaryt) * 2 +
-                                     (stk->capacity) * COEFF_ALLOC *
-                                     sizeof (Elemt));
-        if (!(stk->data))
-        {
-            error |= MEM_ALLOC_ERR;
-            return error;
-        }
-
-        stk->capacity = (stk->capacity) * COEFF_ALLOC;
-        ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] = REF_VAL_CAN;
-    }
-    else
-    {
-        ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] = INT_MAX;
-        stk->data = (Elemt*) realloc (stk->data, sizeof (Canaryt) * 2 +
-                                     (stk->capacity) / COEFF_ALLOC *
-                                     sizeof (Elemt));
-        if (!(stk->data))
-        {
-            error |= MEM_ALLOC_ERR;
-            return error;
-        }
-
-        stk->capacity = (stk->capacity) / COEFF_ALLOC;
-        ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] = REF_VAL_CAN;
-    }
+    new_size = stk->capacity * sizeof (Elemt);
 #endif
+
+    stk->data = (Elemt*) realloc (stk->data, new_size);
+    if (!(stk->data))
+    {
+        stk->data = data_start;
+        stk->capacity = capacity_start;
+        error |= MEM_ALLOC_ERR;
+            return error;
+    }
+
+#ifdef CANARY
+    ((Canaryt*) (get_elem_point (stk, stk->capacity)))[0] = REF_VAL_CAN;
+#endif
+
     for (int i = stk->size_st; i < stk->capacity; i++)
         (get_elem_point (stk, i))[0] = INT_MAX;
 #ifdef HASH
