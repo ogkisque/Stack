@@ -165,14 +165,6 @@ int stack_pop (Stack* stk, Elemt* value)
         return error;
     }
 
-    if ((stk->size_st) == 0)
-    {
-        printf ("Stack is empty. Unable to perform pop\n");
-        *value = INT_MAX;
-        error |= EMPTY_STACK;
-        return error;
-    }
-
     *value = (get_elem_point (stk, stk->size_st - 1))[0];
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
     (stk->size_st)--;
@@ -195,11 +187,7 @@ int stack_pop (Stack* stk, Elemt* value)
 int stack_verify (Stack* stk)
 {
     int error = 0;
-    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))
-    {
-        error |= NULL_POINTER;
-        return error;
-    }
+    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))   error |= NULL_POINTER;
     if ((stk->size_st) < 0)                                                   error |= NEGATIVE_SIZE;
     if ((stk->capacity) < 0)                                                  error |= NEGATIVE_CAPACITY;
     if ((stk->capacity) < (stk->size_st))                                     error |= SIZE_MORE_CAPACITY;
