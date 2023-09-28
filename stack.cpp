@@ -38,10 +38,15 @@ Hasht get_hash (const Stack* stk);
 int make_stack (Stack** stk, const char* name, const char* file, const char* func, int line)
 {
     int error = 0;
+    if (stk == NULL)
+    {
+        error |= MEM_ALLOC_ERR;
+        return error;
+    }
 
     *stk = (Stack*) calloc (1, sizeof (Stack));
 
-    if (&stk == NULL)
+    if (*stk == NULL)
     {
         error |= MEM_ALLOC_ERR;
         return error;
@@ -165,11 +170,25 @@ int stack_pop (Stack* stk, Elemt* value)
         return error;
     }
 
+    if (!value)
+    {
+        error |= MEM_ALLOC_ERR;
+        return error;
+    }
+
+    if ((stk->size_st) == 0)
+    {
+        printf ("Stack is empty. Unable to perform pop\n");
+        *value = INT_MAX;
+        error |= EMPTY_STACK;
+        return error;
+    }
+
     *value = (get_elem_point (stk, stk->size_st - 1))[0];
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
     (stk->size_st)--;
 
-    if (((stk->size_st) < ((stk->capacity) / COEFF_ALLOC)) && (stk->capacity > 8))
+    if (((stk->size_st) < ((stk->capacity) / COEFF_ALLOC / COEFF_ALLOC)) && (stk->capacity > 8))
     {
         error = stack_realloc (stk, REDUCE);
         if (error != 0)
@@ -187,7 +206,11 @@ int stack_pop (Stack* stk, Elemt* value)
 int stack_verify (Stack* stk)
 {
     int error = 0;
-    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))   error |= NULL_POINTER;
+    if (!(stk && (stk->data) && (stk->name) && (stk->file) && (stk->func)))
+    {
+        error |= NULL_POINTER;
+        return error;
+    }
     if ((stk->size_st) < 0)                                                   error |= NEGATIVE_SIZE;
     if ((stk->capacity) < 0)                                                  error |= NEGATIVE_CAPACITY;
     if ((stk->capacity) < (stk->size_st))                                     error |= SIZE_MORE_CAPACITY;
