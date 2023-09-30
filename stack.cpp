@@ -29,6 +29,7 @@ int stack_ctor (Stack* stk, const char* name, const char* file, const char* func
 int stack_dtor (Stack* stk);
 void print_error (int error);
 void stack_dump (const Stack* stk, int error, const char* file, const char* func, int line);
+bool need_realloc (const Stack* stk);
 int stack_realloc (Stack* stk, Actions action);
 Elemt* get_elem_point (const Stack* stk, int num);
 #ifdef HASH
@@ -143,7 +144,7 @@ int stack_push (Stack* stk, Elemt value)
         return error;
     }
 
-    if (stk->size_st == stk->capacity)
+    if (need_realloc (stk))
     {
         error = stack_realloc (stk, EXPAND);
         if (error != 0)
@@ -188,7 +189,7 @@ int stack_pop (Stack* stk, Elemt* value)
     (get_elem_point (stk, stk->size_st - 1))[0] = INT_MAX;
     (stk->size_st)--;
 
-    if (((stk->size_st) < ((stk->capacity) / COEFF_ALLOC / COEFF_ALLOC)) && (stk->capacity > 8))
+    if (need_realloc (stk))
     {
         error = stack_realloc (stk, REDUCE);
         if (error != 0)
@@ -317,6 +318,11 @@ void stack_dump (const Stack* stk, int error, const char* file, const char* func
         printf ("[%d] = %d\n", i, (get_elem_point (stk, i))[0]);
     }
     printf (OFF_COL);
+}
+
+bool need_realloc (const Stack* stk)
+{
+    return (((stk->size_st) < ((stk->capacity) / COEFF_ALLOC / COEFF_ALLOC)) && (stk->capacity > 8)) || (stk->size_st == stk->capacity);
 }
 
 int stack_realloc (Stack* stk, Actions action)
