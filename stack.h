@@ -50,10 +50,9 @@
                     stk->size_st, stk->capacity);                 \
             for (int i = 0; i < stk->size_st; i++)                \
             {                                                     \
-                if (strcmp (#TYPE, "int"))                        \
-                    printf ("%d ", (stk->data)[i]);               \
-                else                                              \
-                    printf ("%lf ", (stk->data)[i]);              \
+                _Generic (stk->data,                              \
+                int*: printf ("%d ", (stk->data)[i]),             \
+                double*: printf ("%lf ", (stk->data)[i]));        \
             }                                                     \
             printf ("\n");                                        \
         }                                                         \

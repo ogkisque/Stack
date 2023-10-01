@@ -28,32 +28,18 @@ int main ()
     STACK_PRINT(&a);
     STACK_PRINT(&b);
 
-    printf ("Size - %d, capacity - %d\n", a.size_st, a.capacity);
-    for (int i = 0; i < a.size_st; i++)
-        printf ("%d ", (a.data)[i]);
-    printf ("\n");
-
-    printf ("Size - %d, capacity - %d\n", b.size_st, b.capacity);
-    for (int i = 0; i < b.size_st; i++)
-        printf ("%lf ", (b.data)[i]);
-    printf ("\n");
-
     int num = 0;
     STACK_POP(&a, &num);
     STACK_POP(&a, &num);
     STACK_POP(&a, &num);
     STACK_POP(&a, &num);
-    printf ("Size - %d, capacity - %d\n", a.size_st, a.capacity);
-    for (int i = 0; i < a.size_st; i++)
-        printf ("%d ", (a.data)[i]);
-    printf ("\n");
+    STACK_PRINT(&a);
+
     STACK_POP(&a, &num);
     STACK_POP(&a, &num);
     STACK_POP(&a, &num);
-    printf ("Size - %d, capacity - %d\n", a.size_st, a.capacity);
-    for (int i = 0; i < a.size_st; i++)
-        printf ("%d ", (a.data)[i]);
-    printf ("\n");
+    STACK_PRINT(&a);
 
     STACK_DTOR(&a);
+    STACK_DTOR(&b);
 }
