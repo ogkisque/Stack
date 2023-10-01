@@ -1,64 +1,104 @@
 #ifndef STACK_HEADER
 #define STACK_HEADER
 
-#define CANARY
-#define HASH
-
-#include <stdlib.h>
 #include <stdio.h>
-#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "colors.h"
+#define STACK_TEMPLATE(TYPE)                                      \
+        typedef struct Stack_##TYPE                               \
+        {                                                         \
+        size_t capacity;                                          \
+        size_t size_st;                                           \
+        TYPE* data;                                               \
+        } Stack_##TYPE;                                           \
+                                                                  \
+        void stack_ctor_##TYPE (Stack_##TYPE* stk)                \
+        {                                                         \
+            stk->size_st = 0;                                     \
+            stk->capacity = 8;                                    \
+            stk->data = (TYPE*) calloc (8, sizeof (TYPE));        \
+        }                                                         \
+                                                                  \
+        void stack_push_##TYPE (Stack_##TYPE* stk, TYPE value)    \
+        {                                                         \
+            stk->data[stk->size_st] = value;                      \
+            (stk->size_st)++;                                     \
+            if (need_realloc (stk->size_st, stk->capacity))       \
+            {                                                     \
+                stk->capacity = stk->capacity * 2;                \
+                stk->data = (TYPE*) realloc (stk->data,           \
+                            stk->capacity * sizeof (TYPE));       \
+            }                                                     \
+        }                                                         \
+                                                                  \
+        void stack_pop_##TYPE (Stack_##TYPE* stk, TYPE* value)    \
+        {                                                         \
+            *value = stk->data[stk->size_st - 1];                 \
+            (stk->size_st)--;                                     \
+            if (need_realloc (stk->size_st, stk->capacity))       \
+            {                                                     \
+                stk->capacity = stk->capacity / 2;                \
+                stk->data = (TYPE*) realloc (stk->data,           \
+                            stk->capacity * sizeof (TYPE));       \
+            }                                                     \
+        }                                                         \
+                                                                  \
+        void stack_print_##TYPE (Stack_##TYPE* stk)               \
+        {                                                         \
+            printf ("Size - %d, capacity - %d\n",                 \
+                    stk->size_st, stk->capacity);                 \
+            for (int i = 0; i < stk->size_st; i++)                \
+            {                                                     \
+                if (strcmp (#TYPE, "int"))                        \
+                    printf ("%d ", (stk->data)[i]);               \
+                else                                              \
+                    printf ("%lf ", (stk->data)[i]);              \
+            }                                                     \
+            printf ("\n");                                        \
+        }                                                         \
+                                                                  \
+        void stack_dtor_##TYPE (Stack_##TYPE* stk)                \
+        {                                                         \
+            (stk)->size_st = 0;                                   \
+            (stk)->capacity = 8;                                  \
+            free ((stk)->data);                                   \
+        }
 
-#define MAKE_STACK(stk) \
-        make_stack ((stk), #stk, __FILE__, __func__, __LINE__)
-
-typedef int Elemt;
-#ifdef CANARY
-typedef unsigned long long Canaryt;
-#endif
-#ifdef HASH
-typedef unsigned long long Hasht;
-#endif
-
-enum Errors
+int need_realloc (size_t size_st, size_t capacity)
 {
-    NULL_POINTER =       1 << 1,
-    MEM_ALLOC_ERR =      1 << 2,
-    NEGATIVE_SIZE =      1 << 3,
-    NEGATIVE_CAPACITY =  1 << 4,
-    SIZE_MORE_CAPACITY = 1 << 5,
-    RUBBISH =            1 << 6,
-    EMPTY_STACK =        1 << 7,
-#ifdef CANARY
-    L_CANARY_ERR =       1 << 8,
-    R_CANARY_ERR =       1 << 9,
-    L_CANARY_DATA_ERR =  1 << 10,
-    R_CANARY_DATA_ERR =  1 << 11,
-#endif
-#ifdef HASH
-    HASH_ERR =           1 << 12
-#endif
-};
+    return ((size_st < capacity / 4) && (capacity > 8))
+            || (size_st == capacity);
+}
 
-enum Actions
-{
-    EXPAND = 1,
-    REDUCE = 2
-};
+#define STACK_CTOR(stk)             \
+        _Generic ((*stk).data,      \
+        int*: stack_ctor_int,       \
+        double*: stack_ctor_double  \
+        ) (stk)
 
-struct Stack;
+#define STACK_PUSH(stk, value)     \
+        _Generic ((value),         \
+        int: stack_push_int,       \
+        double: stack_push_double  \
+        ) (stk, value)
 
-const int CAPACITY_START = 8;
-const int COEFF_ALLOC = 2;
-#ifdef CANARY
-const Canaryt REF_VAL_CAN = 0xFFFFFFFFFFFFFFFF;
-#endif
+#define STACK_POP(stk, value)      \
+        _Generic ((value),         \
+        int*: stack_pop_int,       \
+        double*: stack_pop_double  \
+        ) (stk, value)
 
-int make_stack (Stack** stk, const char* name, const char* file, const char* func, int line);
-int delete_stack (Stack** stk);
-int stack_push (Stack* stk, Elemt value);
-int stack_pop (Stack* stk, Elemt* value);
-int print_stack (Stack* stk);
+#define STACK_DTOR(stk)             \
+        _Generic ((*stk).data,      \
+        int*: stack_ctor_int,       \
+        double*: stack_ctor_double  \
+        ) (stk)
+
+#define STACK_PRINT(stk)             \
+        _Generic ((*stk).data,       \
+        int*: stack_print_int,       \
+        double*: stack_print_double  \
+        ) (stk)
 
 #endif //STACK_HEADER
